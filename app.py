@@ -13,7 +13,14 @@ def load_artifacts():
     feature_cols = joblib.load('feature_columns.pkl')
     return model, scaler, le, feature_cols
 
-model, scaler, le, feature_cols = load_artifacts()
+try:
+    model, scaler, le, feature_cols = load_artifacts()
+except FileNotFoundError as e:
+    st.error(f"Missing model artifact: {e.filename}. Run `python train.py` to generate it.")
+    st.stop()
+except Exception as e:
+    st.error(f"Failed to load model artifacts: {e}")
+    st.stop()
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Grid Stability Predictor", layout="wide")
@@ -47,14 +54,14 @@ with st.sidebar:
         st.session_state.tau2 = 5.0
         st.session_state.tau3 = 5.0
         st.session_state.tau4 = 5.0
-        st.session_state.p1 = 0.0
-        st.session_state.p2 = 0.0
-        st.session_state.p3 = 0.0
-        st.session_state.p4 = 0.0
-        st.session_state.g1 = 0.5
-        st.session_state.g2 = 0.5
-        st.session_state.g3 = 0.5
-        st.session_state.g4 = 0.5
+        st.session_state.p1 = 4.5
+        st.session_state.p2 = -1.5
+        st.session_state.p3 = -1.5
+        st.session_state.p4 = -1.5
+        st.session_state.g1 = 0.8
+        st.session_state.g2 = 0.8
+        st.session_state.g3 = 0.8
+        st.session_state.g4 = 0.8
         st.success("Example loaded! Click 'Predict'.")
     if st.button(" Typical Stable Grid"):
         st.session_state.tau1 = 2.0
@@ -62,9 +69,9 @@ with st.sidebar:
         st.session_state.tau3 = 2.0
         st.session_state.tau4 = 2.0
         st.session_state.p1 = 3.0
-        st.session_state.p2 = 3.0
-        st.session_state.p3 = 3.0
-        st.session_state.p4 = 3.0
+        st.session_state.p2 = -1.0
+        st.session_state.p3 = -1.0
+        st.session_state.p4 = -1.0
         st.session_state.g1 = 0.1
         st.session_state.g2 = 0.1
         st.session_state.g3 = 0.1
@@ -79,35 +86,35 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader(" Time Constants (τ) – seconds")
-    tau1 = st.number_input("Generator 1 τ", value=5.0, step=0.5,
+    tau1 = st.number_input("Generator 1 τ", value=5.0, min_value=0.5, max_value=10.0, step=0.5,
                            help="Response time of generator 1 (higher = slower response)", key="tau1")
-    tau2 = st.number_input("Generator 2 τ", value=5.0, step=0.5,
+    tau2 = st.number_input("Generator 2 τ", value=5.0, min_value=0.5, max_value=10.0, step=0.5,
                            help="Response time of generator 2", key="tau2")
-    tau3 = st.number_input("Generator 3 τ", value=5.0, step=0.5,
+    tau3 = st.number_input("Generator 3 τ", value=5.0, min_value=0.5, max_value=10.0, step=0.5,
                            help="Response time of generator 3", key="tau3")
-    tau4 = st.number_input("Generator 4 τ", value=5.0, step=0.5,
+    tau4 = st.number_input("Generator 4 τ", value=5.0, min_value=0.5, max_value=10.0, step=0.5,
                            help="Response time of generator 4", key="tau4")
 
 with col2:
     st.subheader(" Power Outputs (p) – per unit")
-    p1 = st.number_input("Generator 1 power", value=0.0, step=0.5,
-                         help="Active power output (negative = absorbing power)", key="p1")
-    p2 = st.number_input("Generator 2 power", value=0.0, step=0.5,
-                         help="Active power output", key="p2")
-    p3 = st.number_input("Generator 3 power", value=0.0, step=0.5,
-                         help="Active power output", key="p3")
-    p4 = st.number_input("Generator 4 power", value=0.0, step=0.5,
-                         help="Active power output", key="p4")
+    p1 = st.number_input("Generator 1 power (producer)", value=4.5, min_value=1.5, max_value=6.0, step=0.5,
+                         help="Active power produced by generator 1. Always positive in this dataset.", key="p1")
+    p2 = st.number_input("Generator 2 power (consumer)", value=-1.5, min_value=-2.0, max_value=-0.5, step=0.5,
+                         help="Active power consumed by generator 2. Always negative in this dataset.", key="p2")
+    p3 = st.number_input("Generator 3 power (consumer)", value=-1.5, min_value=-2.0, max_value=-0.5, step=0.5,
+                         help="Active power consumed by generator 3. Always negative in this dataset.", key="p3")
+    p4 = st.number_input("Generator 4 power (consumer)", value=-1.5, min_value=-2.0, max_value=-0.5, step=0.5,
+                         help="Active power consumed by generator 4. Always negative in this dataset.", key="p4")
 
 with col3:
     st.subheader(" Grid Coupling (g) – per unit")
-    g1 = st.number_input("Coupling 1", value=0.5, step=0.1,
+    g1 = st.number_input("Coupling 1", value=0.8, min_value=0.05, max_value=1.0, step=0.05,
                          help="Coupling strength between generator 1 and the grid", key="g1")
-    g2 = st.number_input("Coupling 2", value=0.5, step=0.1,
+    g2 = st.number_input("Coupling 2", value=0.8, min_value=0.05, max_value=1.0, step=0.05,
                          help="Coupling strength for generator 2", key="g2")
-    g3 = st.number_input("Coupling 3", value=0.5, step=0.1,
+    g3 = st.number_input("Coupling 3", value=0.8, min_value=0.05, max_value=1.0, step=0.05,
                          help="Coupling strength for generator 3", key="g3")
-    g4 = st.number_input("Coupling 4", value=0.5, step=0.1,
+    g4 = st.number_input("Coupling 4", value=0.8, min_value=0.05, max_value=1.0, step=0.05,
                          help="Coupling strength for generator 4", key="g4")
 
 # Build input DataFrame
@@ -120,10 +127,14 @@ input_data = pd.DataFrame([{
 # Prediction button
 if st.button(" Predict Stability", type="primary", use_container_width=True):
     # Scale and predict
-    input_scaled = scaler.transform(input_data)
-    pred_encoded = model.predict(input_scaled)[0]
-    pred_label = le.inverse_transform([pred_encoded])[0]
-    
+    try:
+        input_scaled = scaler.transform(input_data)
+        pred_encoded = model.predict(input_scaled)[0]
+        pred_label = le.inverse_transform([pred_encoded])[0]
+    except Exception as e:
+        st.error(f"Prediction failed: {e}")
+        st.stop()
+
     # Display result with visual feedback
     st.markdown("---")
     st.subheader(" Prediction Result")
