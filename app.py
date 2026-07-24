@@ -39,7 +39,10 @@ with st.sidebar:
     Use the **preset examples** below to see typical values.
     """)
     
-    # Preset examples
+    # Preset examples. p1 + p2 + p3 + p4 = 0 in both (power in = power
+    # out); slow tau + strong coupling verified to predict unstable,
+    # fast tau + weak coupling verified to predict stable (see
+    # tests/test_predict.py).
     st.subheader(" Load Example")
     if st.button(" Typical Unstable Grid"):
         st.session_state.tau1 = 5.0
