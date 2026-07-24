@@ -1,20 +1,12 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
 import plotly.graph_objects as go
 
-# ---------- LOAD ARTIFACTS ----------
-@st.cache_resource
-def load_artifacts():
-    model = joblib.load('grid_stability_model.pkl')
-    scaler = joblib.load('scaler.pkl')
-    le = joblib.load('label_encoder.pkl')
-    feature_cols = joblib.load('feature_columns.pkl')
-    return model, scaler, le, feature_cols
+from model import load_artifacts, predict
 
+# ---------- LOAD ARTIFACTS ----------
 try:
-    model, scaler, le, feature_cols = load_artifacts()
+    model, scaler, le, feature_cols = st.cache_resource(load_artifacts)()
 except FileNotFoundError as e:
     st.error(f"Missing model artifact: {e.filename}. Run `python train.py` to generate it.")
     st.stop()
@@ -126,11 +118,8 @@ input_data = pd.DataFrame([{
 
 # Prediction button
 if st.button(" Predict Stability", type="primary", use_container_width=True):
-    # Scale and predict
     try:
-        input_scaled = scaler.transform(input_data)
-        pred_encoded = model.predict(input_scaled)[0]
-        pred_label = le.inverse_transform([pred_encoded])[0]
+        pred_label, prob_by_class = predict(input_data[feature_cols], model, scaler, le)
     except Exception as e:
         st.error(f"Prediction failed: {e}")
         st.stop()
@@ -138,28 +127,25 @@ if st.button(" Predict Stability", type="primary", use_container_width=True):
     # Display result with visual feedback
     st.markdown("---")
     st.subheader(" Prediction Result")
-    
-    # Confidence (probability)
-    if hasattr(model, "predict_proba"):
-        probs = model.predict_proba(input_scaled)[0]
-        prob_stable = probs[le.transform(['stable'])[0]]
-        prob_unstable = probs[le.transform(['unstable'])[0]]
-        
-        # Show confidence as a progress bar
-        if pred_label == "stable":
-            st.success(f"###  The grid is **STABLE**")
-            st.progress(float(prob_stable), text=f"Confidence: {prob_stable*100:.1f}%")
-        else:
-            st.error(f"###  The grid is **UNSTABLE**")
-            st.progress(float(prob_unstable), text=f"Confidence: {prob_unstable*100:.1f}%")
-        
-        # Show detailed probabilities
-        st.markdown("**Model confidence breakdown:**")
-        prob_df = pd.DataFrame({
-            "Outcome": le.classes_,
-            "Probability": probs
-        }).sort_values("Probability", ascending=False)
-        st.dataframe(prob_df, use_container_width=True)
+
+    prob_stable = prob_by_class["stable"]
+    prob_unstable = prob_by_class["unstable"]
+
+    # Show confidence as a progress bar
+    if pred_label == "stable":
+        st.success(f"###  The grid is **STABLE**")
+        st.progress(float(prob_stable), text=f"Confidence: {prob_stable*100:.1f}%")
+    else:
+        st.error(f"###  The grid is **UNSTABLE**")
+        st.progress(float(prob_unstable), text=f"Confidence: {prob_unstable*100:.1f}%")
+
+    # Show detailed probabilities
+    st.markdown("**Model confidence breakdown:**")
+    prob_df = pd.DataFrame({
+        "Outcome": list(prob_by_class.keys()),
+        "Probability": list(prob_by_class.values())
+    }).sort_values("Probability", ascending=False)
+    st.dataframe(prob_df, use_container_width=True)
     
     # Explain what the prediction means
     st.markdown("---")
