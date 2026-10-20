@@ -28,7 +28,7 @@ with st.sidebar:
     st.header(" About the Model")
     st.markdown("""
     - **Model type**: XGBoost Classifier  
-    - **Accuracy**: **95.1%** on test data
+    - **Accuracy**: **94.7%** on test data
     - **Inputs**: 12 features (time constants, power outputs, coupling strengths)  
     - **Output**: `stable` / `unstable`  
     - **Training data**: 10,000 synthetic grid states  

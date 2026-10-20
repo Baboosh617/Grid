@@ -35,7 +35,7 @@ standard generator-symmetry augmentation) is used on the
 
 - XGBoost classifier, scikit-learn `StandardScaler` + `LabelEncoder`
 - Trained on an 80/20 stratified split, fixed random seed (42)
-- **Test accuracy: 95.05%** on the 10k dataset (verified by re-running
+- **Test accuracy: 94.65%** on the 10k dataset with XGBoost 3.2 (verified by re-running
   `train.py`; see `experiment/augmented-60k` for the 60k comparison)
 
 ## Running locally
